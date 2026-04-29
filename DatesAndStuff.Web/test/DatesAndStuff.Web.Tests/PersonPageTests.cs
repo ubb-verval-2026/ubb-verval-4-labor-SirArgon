@@ -171,4 +171,39 @@ public class PersonPageTests
             acceptNextAlert = true;
         }
     }
+
+    [Test]
+    public void Person_SalaryIncrease_BelowMinusTen_ShouldShowValidationErrors()
+    {
+        // Arrange
+        driver.Navigate().GoToUrl(BaseURL);
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+        
+        var navLink = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath("//*[@data-test='PersonPageNavigation']")));
+        navLink.Click();
+        
+        // Wait for the page to load
+        Thread.Sleep(500);
+
+        var inputLocator = By.XPath("//*[@data-test='SalaryIncreasePercentageInput']");
+        var input = wait.Until(ExpectedConditions.ElementToBeClickable(inputLocator));
+        input.Clear();
+        input.SendKeys("-15");
+        
+        // Trigger blur event to validate the input
+        var jsExecutor = (IJavaScriptExecutor)driver;
+        jsExecutor.ExecuteScript("arguments[0].blur();", input);
+        
+        // Wait for validation messages to appear
+        Thread.Sleep(1000);
+
+        // Assert - Check that validation error message is displayed
+        // Search for the error message text anywhere on the page
+        var errorMessageElements = driver.FindElements(By.XPath("//*[contains(text(), 'specified percentag should be between')]"));
+        
+        errorMessageElements.Should().NotBeEmpty("Validation error message should be displayed on the page");
+        
+        var errorText = string.Join(" ", errorMessageElements.Select(e => e.Text));
+        errorText.Should().Contain("specified percentag should be between -10 and infinity");
+    }
 }
