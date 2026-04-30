@@ -97,8 +97,13 @@ public class PersonPageTests
         Assert.That(verificationErrors.ToString(), Is.EqualTo(""));
     }
 
-    [Test]
-    public void Person_SalaryIncrease_ShouldIncrease()
+    [TestCase(5, 5250)]
+    [TestCase(10, 5500)]
+    [TestCase(0, 5000)]
+    [TestCase(-5, 4750)]
+    [TestCase(20, 6000)]
+    [TestCase(-10, 4500)]
+    public void Person_SalaryIncrease_ShouldIncrease(double percentage, double expectedSalary)
     {
         // Arrange
         driver.Navigate().GoToUrl(BaseURL);
@@ -108,7 +113,7 @@ public class PersonPageTests
 
         var input = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='SalaryIncreasePercentageInput']")));
         input.Clear();
-        input.SendKeys("5");
+        input.SendKeys(percentage.ToString());
 
         // Act
         var submitButton = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']")));
@@ -118,7 +123,7 @@ public class PersonPageTests
         // Assert
         var salaryLabel = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='DisplayedSalary']")));
         var salaryAfterSubmission = double.Parse(salaryLabel.Text);
-        salaryAfterSubmission.Should().BeApproximately(5250, 0.001);
+        salaryAfterSubmission.Should().BeApproximately(expectedSalary, 0.001);
     }
     private bool IsElementPresent(By by)
     {
@@ -166,5 +171,35 @@ public class PersonPageTests
         {
             acceptNextAlert = true;
         }
+    }
+
+    [TestCase("-10")]
+    [TestCase("-10.001")]
+    [TestCase("-15")]
+    [TestCase("-20")]
+    public void Person_SalaryIncrease_LessThanMinus10_ShouldShowErrorMessages(string invalidPercentage)
+    {
+        // Arrange
+        driver.Navigate().GoToUrl(BaseURL);
+        driver.FindElement(By.XPath("//*[@data-test='PersonPageNavigation']")).Click();
+
+        Thread.Sleep(1000);
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+
+        var input = wait.Until(ExpectedConditions.ElementToBeClickable(By.Name("formModel.SalaryIncreasePercentage")));
+        input.Clear();
+        input.SendKeys(invalidPercentage);
+
+        // Act
+        var submitButton = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']")));
+        submitButton.Click();
+
+        // Assert
+        bool isTopErrorVisible = IsElementPresent(By.XPath("(.//*[normalize-space(text()) and normalize-space(.)='About'])[1]/following::li[1]"));
+        bool isFieldErrorVisible = IsElementPresent(By.XPath("(.//*[normalize-space(text()) and normalize-space(.)='*'])[2]/following::div[2]"));
+
+        isTopErrorVisible.Should().BeTrue();
+        isFieldErrorVisible.Should().BeTrue();
     }
 }
